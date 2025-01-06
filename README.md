@@ -8,7 +8,7 @@
 
 The Traveling salesman problem, as the name suggests, is a combinatorial optimisation problem in which we seek to find the shortest hamiltonian circuit in a weighted and complete graph, a graph where each node is connected to any other nodes. It is a NP-hard problem.
 
-A hamiltonian circuit is a sequence of nodes in which any node occurs just once, excpet for the begin and end of the sequence, which has to be the same. The shortest path means that the sum of the weights of the edges that compose the path is minimal.
+A hamiltonian circuit is a sequence of nodes in which any node occurs just once, except for the beginning and end of the sequence, which have to be the same. The shortest path means that the sum of the weights of the edges that compose the path is minimal.
 
 ## Benchmarks
 
@@ -27,27 +27,37 @@ This is a very interesting example of exploration and exploitation: we exploit t
 
 It is interesting to note that the 2 aspects are both fundamental, and working with just one of them doesn't work.
 
-The most important contribution I implemented is the balancing of the parameters that regulate the weight of the pheromone and heuristics in computing the probability distribution: we start with similar coefficients but then we give more importance to the knowledge based on the pheromone.
-
 ## Description of the implemented algorithm
 
-We already discussed initialisation of the pheromone. What we did next was to let the ants move in the graph with a probability distribution, and then update the pheromone using the well-known formula. We keep track of the best cost at each iteration. 
+I leveraged a class `Graph` of the `networkx` package and I implemented two classes: `TSP`, to regulate the parameters of the algorithm, and `Path` class, to produce solutions at each step, with global attributes, to store and access efficiently the Graph of interest and the pheromone matrix.
 
-An improvement we brought to the algorithm is the update of the coefficients `alpha` and `beta`, the first is reduced while the second increased by a factor (0.95, 1.05) after a certain number of steps. We noticed that this allows a more efficient and better learning than using fixed alpha and beta.
+If we think about the first iterations of the algorithm, we know that the pheromone matrix is uniformily initialised, so the path will be mostly determined by the information coming from the heuristic, i.e. the inter-nodes distance. So we expect that in the first iterations the cost of the solutions will be close to the cost of a path determined choosing the next node as the closest node to the actual node. That is why to have a "smooth" update of the pheromone matrix we initialise it with 1/`heruistic_cost`.
 
-A numerical problem comes in when computing the probablities to choose the next node of a path: the orders of magnitude of the pheromone matrix and the heuristic information have to be comparable, otherwise the greater of the two will overwhelm the other, loosing all the power of ACO, we will show indeed that in both cases, using only the pheromone either the heuristic information, leads to useless solutions.
+After having implemented a first version of the algorithm, I noticed it didn't work very well, that's why I decided to try to gradually update of the coefficients `alpha` and `beta`, the first was reduced while the second increased by a factor (0.95, 1.05) after a certain number of steps: in this way the algorithm starts with similar coefficients but then gives more importance to the knowledge based on the pheromone. 
 
-So we choose to compute the probabilites of moving to the next node in two separate way, one for the pheromone and another for the heuristic and then multiply them by weighting them with alpha and beta.
+I noticed that this allowed a more efficient and better learning than using fixed alpha and beta.
+
+But it can lead to numerical problems when the `beta` coefficient becomes too big: the probabilites can become NaN. If this happens, we take back alpha and beta to the configuration of the last best path found.
+
+Another numerical problem comes in when computing the probablities to choose the next node of a path: the orders of magnitude of the pheromone matrix and the heuristic information have to be comparable, otherwise the greater of the two will overwhelm the other, loosing all the power of ACO, I will show indeed that in both cases, using only the pheromone either the heuristic information, leads to useless solutions.
+
+To solve this problem, I choose to compute the probabilites of moving to the next node in two separate ways, one for the pheromone and another for the heuristic and then weighting them with alpha and beta.
+
+I also tried to use elitism in the update of the pheromone, i.e. to update it using only the best half of the generated paths, but this didn't bring any improvement.
+
+Also biasing the pheromone with the current best path found doesn't bring a significant improvement.
+
+To have a fair comparison between the different parameters, whenever the `solve` function is called, I set the seed to 0.
+
+I also implemented the 2-opt algorithm and found out that it significantly improves the solutions and combined with my algorithm can, in some cases, find the optimal.
+
 
 ## Parallel considerations
 
-It is interesting to note that, since the agents that travel through the graph are various and independent, it is not difficult to parallelise the implementation of the algorithm: each agent is a single process that has to keep in memory the graph (adjacency matrix) and the pheromone matrix and when a circuit is built it sends it to the master process. This approach will be probably beneficial for large graphs, where the creation of the circuit can be expensive.
-
-## Possible extensions
-
-In some paper a savings matrix was introduced, which is the matrix that in entry i,j contains the saving of going from i to j
+It is interesting to note that, since the agents that travel through the graph are various and independent, it is not difficult to parallelise the implementation of the algorithm: each agent is a single process that needs access to the graph (adjacency matrix) and the pheromone matrix and when it builds a circuit it sends it to the master process. This approach will be probably beneficial for large graphs, where the creation of the circuit can be long and expensive.
 
 ## Conclusion
 
-In conclusion, we implemented a code to solve the TSP that works and can find sufficiently good solutions in a relative small amount of time, in many cases this can be helpful: we trade-off some cost in the solution for a faster execution. We also implemented a local optimisation algorithm that improves the final solution.
+In conclusion, the code I implemented to solve the TSP works and can find sufficiently good solutions in a relative small amount of time, compared to all the possible solutions to this kind of problem, which is `n!`.
+
 
