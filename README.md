@@ -61,3 +61,4 @@ It is interesting to note that, since the agents that travel through the graph a
 In conclusion, the code I implemented to solve the TSP works and can find sufficiently good solutions in a relative small amount of time, compared to all the possible solutions to this kind of problem, which is `n!`.
 
 
+
