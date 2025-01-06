@@ -16,6 +16,7 @@ Benchmarks for the TSP were taken from https://github.com/mastqe/tsplib/tree/mas
 
 [//]: # (Benchmarks for the VRP were taken from https://github.com/Fedoration/CVRPLIB/tree/master/data https://github.com/PyVRP/VRPLIB/tree/main/tests/data.)
 
+
 ## Ant Colony Optimisation
 
 Ant colony is based on the idea of having many agents that move independently on each other. They move through the graph based on a probability distribution built on 2 different kinds of informations: the heuristics and the knowledge of the previous generations. 
@@ -28,9 +29,23 @@ It is interesting to note that the 2 aspects are both fundamental, and working w
 
 The most important contribution I implemented is the balancing of the parameters that regulate the weight of the pheromone and heuristics in computing the probability distribution: we start with similar coefficients but then we give more importance to the knowledge based on the pheromone.
 
+## Description of the implemented algorithm
+
+We already discussed initialisation of the pheromone. What we did next was to let the ants move in the graph with a probability distribution, and then update the pheromone using the well-known formula. We keep track of the best cost at each iteration. 
+
+An improvement we brought to the algorithm is the update of the coefficients `alpha` and `beta`, the first is reduced while the second increased by a factor (0.95, 1.05) after a certain number of steps. We noticed that this allows a more efficient and better learning than using fixed alpha and beta.
+
+A numerical problem comes in when computing the probablities to choose the next node of a path: the orders of magnitude of the pheromone matrix and the heuristic information have to be comparable, otherwise the greater of the two will overwhelm the other, loosing all the power of ACO, we will show indeed that in both cases, using only the pheromone either the heuristic information, leads to useless solutions.
+
+So we choose to compute the probabilites of moving to the next node in two separate way, one for the pheromone and another for the heuristic and then multiply them by weighting them with alpha and beta.
+
 ## Parallel considerations
 
 It is interesting to note that, since the agents that travel through the graph are various and independent, it is not difficult to parallelise the implementation of the algorithm: each agent is a single process that has to keep in memory the graph (adjacency matrix) and the pheromone matrix and when a circuit is built it sends it to the master process. This approach will be probably beneficial for large graphs, where the creation of the circuit can be expensive.
+
+## Possible extensions
+
+In some paper a savings matrix was introduced, which is the matrix that in entry i,j contains the saving of going from i to j
 
 ## Conclusion
 
